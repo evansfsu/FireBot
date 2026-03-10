@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ROS2
+firebot_ws/build/
+firebot_ws/install/
+firebot_ws/log/
+
+# Docker
+.docker/
+
+# YOLO model weights (large binary files)
+models/*.pt
+models/*.onnx
+models/*.engine
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env

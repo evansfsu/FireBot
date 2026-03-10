@@ -1,0 +1,38 @@
+services:
+  firebot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    network_mode: host
+    privileged: true
+    environment:
+      - ROS_DOMAIN_ID=0
+    volumes:
+      - ../models:/models
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/ttyACM0:/dev/ttyACM0
+    restart: unless-stopped
+    command: ros2 launch firebot firebot.launch.py
+
+  # Development profile -- mounts source for live editing, no device requirements
+  firebot-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    network_mode: host
+    profiles:
+      - dev
+    environment:
+      - ROS_DOMAIN_ID=0
+      - FIREBOT_SIMULATION=true
+    volumes:
+      - ../firebot_ws/src:/firebot_ws/src
+      - ../models:/models
+      - ../scripts:/scripts
+    command: >
+      bash -c "source /opt/ros/humble/setup.bash &&
+               cd /firebot_ws &&
+               colcon build --symlink-install &&
+               source install/setup.bash &&
+               ros2 launch firebot firebot.launch.py"
