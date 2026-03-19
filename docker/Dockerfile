@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-colcon-common-extensions \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    python3-picamera2 \
     libcamera0 \
+    python3-dev \
     libcap-dev \
     v4l-utils \
     && rm -rf /var/lib/apt/lists/*
@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip3 install --no-cache-dir \
     ultralytics \
     opencv-python-headless \
-    pyserial
+    pyserial \
+    picamera2
 
 WORKDIR /firebot_ws
 
