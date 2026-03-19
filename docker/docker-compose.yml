@@ -11,6 +11,11 @@ services:
       - ../models:/models
     devices:
       - /dev/video0:/dev/video0
+      # CSI camera passthrough for libcamera/Picamera2 inside Docker
+      - /dev/media0:/dev/media0
+      - /dev/media1:/dev/media1
+      - /dev/v4l-subdev0:/dev/v4l-subdev0
+      - /dev/v4l-subdev1:/dev/v4l-subdev1
       - /dev/ttyACM0:/dev/ttyACM0
     restart: unless-stopped
     command: ros2 launch firebot firebot.launch.py

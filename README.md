@@ -71,6 +71,8 @@ ros2 topic pub --once /alarm/trigger std_msgs/msg/Bool "data: true"
 
 With just the camera connected (no Arduino), all three nodes start. The `arduino_bridge_node` logs a warning about the missing serial port but keeps running. The `fire_detector_node` and `brain_node` work fully -- you can test fire detection and watch the state machine respond.
 
+When using a CSI camera in Docker, `fire_detector_node` should log `Pi Camera initialized`. If you see `picamera2 not available`, rebuild the Docker image so the required camera packages are installed.
+
 ### Windows Development
 
 ```bash

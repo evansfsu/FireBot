@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-colcon-common-extensions \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    python3-picamera2 \
+    libcamera0 \
+    libcap-dev \
+    v4l-utils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \

@@ -251,7 +251,7 @@ sudo systemctl enable firebot.service
 
 | Problem | Solution |
 |---------|----------|
-| Camera not detected | Check ribbon cable orientation. Run `sudo dmesg \| grep -i cam`. Ensure CSI cable is compatible with Pi 5 connector |
+| Camera not detected in Docker (CSI camera) | 1) Confirm Picamera2 can be imported inside the container: `docker exec -it <container> python3 -c "from picamera2 import Picamera2; print('ok')"` 2) Confirm media nodes exist on the Pi: `ls /dev/media* /dev/v4l-subdev*` 3) If your Pi uses different numbering, update `docker/docker-compose.yml` device mappings to match, then rebuild and restart. |
 | IMX477 not recognized | Should be auto-detected by libcamera. Try `libcamera-hello --list-cameras` |
 | Docker build fails on ARM | Ensure you're using 64-bit Raspberry Pi OS |
 | Out of disk space | Use a larger SD card (32GB+) or clean Docker: `docker system prune` |
