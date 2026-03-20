@@ -25,14 +25,22 @@ class FireDetectorNode(Node):
     def __init__(self):
         super().__init__('fire_detector_node')
 
-        self.declare_parameter('model_path', '/models/fire_model.pt')
+        self.declare_parameter('model_path', '/models/best_small.pt')
         self.declare_parameter('confidence_threshold', 0.6)
+        self.declare_parameter('inference_imgsz', 512)
+        self.declare_parameter('max_det', 3)
+        self.declare_parameter('fire_only', True)
+        self.declare_parameter('fire_class_name', 'Fire')
         self.declare_parameter('camera_width', 640)
         self.declare_parameter('camera_height', 480)
         self.declare_parameter('detection_fps', 2.0)
 
         self.model_path = self.get_parameter('model_path').value
         self.conf_threshold = self.get_parameter('confidence_threshold').value
+        self.infer_imgsz = int(self.get_parameter('inference_imgsz').value)
+        self.max_det = int(self.get_parameter('max_det').value)
+        self.fire_only = bool(self.get_parameter('fire_only').value)
+        self.fire_class_name = str(self.get_parameter('fire_class_name').value)
         self.cam_w = self.get_parameter('camera_width').value
         self.cam_h = self.get_parameter('camera_height').value
         self.det_fps = self.get_parameter('detection_fps').value
@@ -101,18 +109,31 @@ class FireDetectorNode(Node):
             self.publisher.publish(msg)
             return
 
-        results = self.model(frame, verbose=False, conf=self.conf_threshold)
+        results = self.model.predict(
+            source=frame,
+            imgsz=self.infer_imgsz,
+            conf=self.conf_threshold,
+            max_det=self.max_det,
+            verbose=False,
+            device='cpu',
+        )
 
         best = None
         best_conf = 0.0
 
         for r in results:
+            if r.boxes is None:
+                continue
             for box in r.boxes:
                 conf = float(box.conf[0])
+                cls_id = int(box.cls[0])
+                label = self.model.names.get(cls_id, 'unknown')
+
+                if self.fire_only and label.strip().lower() != self.fire_class_name.strip().lower():
+                    continue
+
                 if conf > best_conf:
                     best_conf = conf
-                    cls_id = int(box.cls[0])
-                    label = self.model.names.get(cls_id, 'unknown')
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     best = {
                         'conf': conf,

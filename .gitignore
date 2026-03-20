@@ -19,6 +19,7 @@ firebot_ws/log/
 models/*.pt
 models/*.onnx
 models/*.engine
+!models/best_small.pt
 
 # IDE
 .vscode/

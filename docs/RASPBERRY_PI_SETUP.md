@@ -104,7 +104,7 @@ You'll see output like:
 
 ```
 [fire_detector_node] [INFO] Pi Camera initialized
-[fire_detector_node] [INFO] YOLO model loaded: /models/fire_model.pt
+[fire_detector_node] [INFO] YOLO model loaded: /models/best_small.pt
 [fire_detector_node] [INFO] Fire detector node started
 [brain_node]         [INFO] Brain node started -- state: IDLE
 [arduino_bridge_node] [WARN] Serial open failed: /dev/ttyACM0   <-- expected without Arduino

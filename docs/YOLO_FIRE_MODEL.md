@@ -2,44 +2,44 @@
 
 How to obtain and use a YOLO model for fire and smoke detection with FireBot.
 
-## Selected Model
+## Selected Model (YOLO11 / YOLOv11)
 
-FireBot uses the pre-trained YOLOv8 fire and smoke detection model from
-[Abonia1/YOLOv8-Fire-and-Smoke-Detection](https://github.com/Abonia1/YOLOv8-Fire-and-Smoke-Detection).
+FireBot uses the pre-trained YOLO11 model from
+[sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11](https://github.com/sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11).
 
 | Property | Value |
 |----------|-------|
-| Base architecture | YOLOv8s (small) |
-| File size | ~21 MB |
-| Classes | `Fire` (0), `default` (1), `smoke` (2) |
-| Dataset | Roboflow fire-wrpgm v8 (CC BY 4.0) |
+| Base architecture | YOLOv11 (Ultralytics) |
+| Classes | `Fire`, `Smoke` |
+| Recommended weights filename | `best_small.pt` |
+| Dataset | Roboflow fire-smoke-detection-yolov11 |
 | Task | Object detection |
 
-The model was trained on a Roboflow-annotated dataset of fire and smoke images and detects both fire and smoke in real-time video frames.
+FireBot is configured to **trigger only on `Fire`** detections (smoke alone will not arm the extinguisher flow).
 
 ## Download the Model
 
-The trained weights file should be placed at `models/fire_model.pt`.
+Place the weights file at `models/best_small.pt`.
 
 ### Option A: Direct download (recommended)
 
 ```bash
 # From the FireBot project root:
-curl -L -o models/fire_model.pt \
-  https://github.com/Abonia1/YOLOv8-Fire-and-Smoke-Detection/raw/main/runs/detect/train/weights/best.pt
+curl -L -o models/best_small.pt \
+  https://raw.githubusercontent.com/sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11/main/models/kaggle%20developed%20models/best_small.pt
 ```
 
 On Windows (PowerShell):
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/Abonia1/YOLOv8-Fire-and-Smoke-Detection/raw/main/runs/detect/train/weights/best.pt" -OutFile "models/fire_model.pt"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11/main/models/kaggle%20developed%20models/best_small.pt" -OutFile "models/best_small.pt"
 ```
 
 ### Option B: Clone the full repo
 
 ```bash
-git clone https://github.com/Abonia1/YOLOv8-Fire-and-Smoke-Detection.git
-cp YOLOv8-Fire-and-Smoke-Detection/runs/detect/train/weights/best.pt models/fire_model.pt
+git clone https://github.com/sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11.git
+cp Real-Time-Smoke-Fire-Detection-YOLO11/models/kaggle\ developed\ models/best_small.pt models/best_small.pt
 ```
 
 ## Verify the Model
@@ -48,22 +48,25 @@ Test that the model loads correctly (inside Docker):
 
 ```bash
 docker run --rm -v ./models:/models docker-firebot-dev \
-  python3 -c "from ultralytics import YOLO; m = YOLO('/models/fire_model.pt'); print('Classes:', m.names)"
+  python3 -c "from ultralytics import YOLO; m = YOLO('/models/best_small.pt'); print('Classes:', m.names)"
 ```
 
 Expected output:
 
 ```
-Classes: {0: 'Fire', 1: 'default', 2: 'smoke'}
+Classes: {0: 'Fire', 1: 'Smoke'}
 ```
 
 ## How It Integrates with FireBot
 
 1. The `fire_detector_node` loads the model at startup from the path specified in `firebot_params.yaml`
 2. Each camera frame is passed through the model
-3. The highest-confidence detection is published on the `/detection` topic as a `FireDetection` message
-4. The `brain_node` reacts to any detection where `detected == True` and `confidence >= threshold`
-5. The class label (`Fire`, `default`, or `smoke`) is included in the message but the brain treats all classes equally -- any detection above the confidence threshold triggers the response
+3. The detector publishes `/detection` as a `FireDetection` message
+4. FireBot is configured with `fire_only: true` so `/detection.detected == true` only when the model predicts the `Fire` class
+5. The `brain_node` requires **three confirmations** before approaching/extinguishing:
+   - sustained vision confirmation (`Fire`)
+   - alarm confirmation (`/alarm/trigger`)
+   - user confirmation (`/user/fire_confirm`)
 
 ## Configuration
 
@@ -72,9 +75,12 @@ In `firebot_ws/src/firebot/config/firebot_params.yaml`:
 ```yaml
 fire_detector_node:
   ros__parameters:
-    model_path: "/models/fire_model.pt"
-    confidence_threshold: 0.6    # Lower = more sensitive, higher = fewer false positives
-    detection_fps: 2.0           # Frames per second (IDLE state)
+    model_path: "/models/best_small.pt"
+    confidence_threshold: 0.2
+    inference_imgsz: 512
+    fire_only: true
+    fire_class_name: "Fire"
+    detection_fps: 2.0
 ```
 
 ## Testing Without a Fire
@@ -102,8 +108,8 @@ If you want to improve detection for your specific environment:
 
 ```bash
 pip install ultralytics
-yolo detect train model=models/fire_model.pt data=your_data.yaml epochs=25 imgsz=640
-cp runs/detect/train/weights/best.pt models/fire_model.pt
+yolo detect train model=models/best_small.pt data=your_data.yaml epochs=25 imgsz=640
+cp runs/detect/train/weights/best.pt models/best_small.pt
 ```
 
 This starts from the existing fire-trained weights so it converges faster than training from scratch.
@@ -115,18 +121,15 @@ Expected inference speeds on Pi 5 (no GPU, CPU-only):
 | Model | Size | Speed (Pi 5) | Use case |
 |-------|------|-------------|----------|
 | YOLOv8n (nano) | 6 MB | ~80-120ms (~8-12 FPS) | Fastest, good accuracy |
-| **YOLOv8s (small)** | **21 MB** | **~200-300ms (~3-5 FPS)** | **Current model -- good balance** |
+| **YOLOv11 nano** | **small** | **~5-12 FPS (varies)** | **Recommended for Pi** |
 | YOLOv8m (medium) | 50 MB | ~500-800ms (~1-2 FPS) | Best accuracy, too slow |
 
-The current model (YOLOv8s) runs at approximately 3-5 FPS on the Pi 5, which is adequate for fire detection since fires don't appear and disappear rapidly. If you need faster inference, retrain using YOLOv8n as the base:
-
-```bash
-yolo detect train model=yolov8n.pt data=datasets/fire-8/data.yaml epochs=50 imgsz=640
-```
+Performance depends heavily on the model variant and whether you export to ONNX/TensorRT.
+Start with the provided nano weights, then tune `imgsz` and `detection_fps` in `firebot_params.yaml`.
 
 ## Alternative Fire Detection Models
 
-If the Abonia1 model doesn't meet your needs:
+If the YOLO11 model doesn't meet your needs:
 
 | Repository | Model | Notes |
 |-----------|-------|-------|

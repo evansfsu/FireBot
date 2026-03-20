@@ -11,7 +11,7 @@ Fire detection and suppression robot using ROS2, YOLOv8 computer vision, mecanum
 - **Extinguisher**: DC motor (pin pull) + lead screw (discharge lever)
 - **Sensors**: HC-SR04 ultrasonic, analog audio/sound sensor
 - **Warning**: Piezo buzzer + LED
-- **YOLO Model**: [Abonia1/YOLOv8-Fire-and-Smoke-Detection](https://github.com/Abonia1/YOLOv8-Fire-and-Smoke-Detection) (baked into Docker image)
+- **YOLO Model**: [sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11](https://github.com/sayedgamal99/Real-Time-Smoke-Fire-Detection-YOLO11) (Fire/Smoke)
 
 ## Architecture
 
@@ -24,6 +24,16 @@ Three ROS2 nodes running in a Docker container on the Pi:
 | `arduino_bridge_node` | Serial bridge to Arduino for motors, extinguisher, and sensors |
 
 The Arduino runs a single sketch that parses serial commands and drives all hardware. Nodes degrade gracefully when hardware is missing -- you can run with just a camera, or no hardware at all.
+
+## Safety confirmation (3-stage)
+
+FireBot requires **three confirmations** before it will approach and discharge an extinguisher:
+
+1. **Vision confirmation**: sustained `Fire` detection for `vision_trigger_duration_sec`
+2. **Alarm confirmation**: `/alarm/trigger` must be `true`
+3. **User confirmation**: publish `/user/fire_confirm` as `true`
+
+To deny/reset at any time, publish `/user/fire_confirm` as `false`.
 
 ## Quick Start (Raspberry Pi)
 
