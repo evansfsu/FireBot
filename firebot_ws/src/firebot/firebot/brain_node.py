@@ -58,6 +58,7 @@ class BrainNode(Node):
         self.warn_cmd_pub = self.create_publisher(Int32, '/warning/cmd', 10)
         self.state_pub = self.create_publisher(String, '/firebot/state', 10)
         self.countdown_pub = self.create_publisher(Int32, '/firebot/warning_countdown', 10)
+        self.status_pub = self.create_publisher(String, '/firebot/status_message', 10)
 
         # Subscribers
         self.create_subscription(FireDetection, '/detection', self._detection_cb, 10)
@@ -88,6 +89,7 @@ class BrainNode(Node):
             self.get_logger().info(f'State: {self.state} -> {new_state}')
             self.state = new_state
             self.state_enter_time = self.get_clock().now()
+            self._announce_state_entry()
 
     def _time_in_state(self):
         return (self.get_clock().now() - self.state_enter_time).nanoseconds / 1e9
@@ -131,6 +133,34 @@ class BrainNode(Node):
         msg = Int32()
         msg.data = state
         self.warn_cmd_pub.publish(msg)
+
+    def _publish_status(self, text: str, warn: bool = False):
+        msg = String()
+        msg.data = text
+        self.status_pub.publish(msg)
+        if warn:
+            self.get_logger().warn(text)
+        else:
+            self.get_logger().info(text)
+
+    def _announce_state_entry(self):
+        # Human-readable status lines for command-line demos on Raspberry Pi
+        if self.state == State.IDLE:
+            self._publish_status('IDLE: Monitoring vision feed and waiting for alarm/user triggers.')
+        elif self.state == State.WAITING_FOR_ALARM:
+            self._publish_status('WAITING_FOR_ALARM: Vision confirmed fire; confirming with thermal/alarm sensor.')
+        elif self.state == State.SEARCHING:
+            self._publish_status('SEARCHING: Driving-Rotating Motors; Tracking Fire in camera frame.')
+        elif self.state == State.WAITING_FOR_USER_CONFIRMATION:
+            self._publish_status('WAITING_FOR_USER_CONFIRMATION: Fire centered; awaiting user confirm/deny.')
+        elif self.state == State.APPROACHING:
+            self._publish_status('APPROACHING: Driving toward fire while correcting heading.')
+        elif self.state == State.WARNING:
+            self._publish_status('WARNING: Audible/visual warning active. Countdown before discharge.', warn=True)
+        elif self.state == State.EXTINGUISHING:
+            self._publish_status('EXTINGUISHING: Pulling pin and discharging extinguisher.', warn=True)
+        elif self.state == State.COMPLETE:
+            self._publish_status('COMPLETE: Extinguishing cycle finished; resetting to IDLE.')
 
     def _stop_motors(self):
         self._publish_twist(0.0, 0.0)

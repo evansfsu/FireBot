@@ -77,6 +77,59 @@ ros2 topic echo /detection --once
 ros2 topic pub --once /alarm/trigger std_msgs/msg/Bool "data: true"
 ```
 
+### 4. Raspberry Pi CLI demo (state + signals)
+
+For a live command-line demo on the Pi, watch these topics:
+
+```bash
+ros2 topic echo /firebot/state
+ros2 topic echo /firebot/status_message
+```
+
+Send manual confirmation signals:
+
+```bash
+# Fire alarm input
+ros2 topic pub --once /alarm/trigger std_msgs/msg/Bool "data: true"
+
+# User confirms fire
+ros2 topic pub --once /user/fire_confirm std_msgs/msg/Bool "data: true"
+
+# User denies fire (forces reset path)
+ros2 topic pub --once /user/fire_confirm std_msgs/msg/Bool "data: false"
+```
+
+You can also run the helper demo script from inside the container:
+
+```bash
+bash /scripts/rpi_signal_demo.sh
+```
+
+Full copy/paste setup + demo flow:
+
+```bash
+# 1) Pull and run on Raspberry Pi
+git pull
+docker compose -f docker/docker-compose.yml down
+docker compose -f docker/docker-compose.yml up --build -d
+
+# 2) Open shell in running container
+docker exec -it $(docker ps -q) bash
+source /opt/ros/humble/setup.bash
+source /firebot_ws/install/setup.bash
+
+# 3) In separate terminals, observe state + messages
+ros2 topic echo /firebot/state
+ros2 topic echo /firebot/status_message
+
+# 4) Send signals (or run helper script)
+ros2 topic pub --once /alarm/trigger std_msgs/msg/Bool "data: true"
+ros2 topic pub --once /user/fire_confirm std_msgs/msg/Bool "data: true"
+ros2 topic pub --once /user/fire_confirm std_msgs/msg/Bool "data: false"
+# OR:
+bash /scripts/rpi_signal_demo.sh
+```
+
 ### Camera-Only Mode
 
 With just the camera connected (no Arduino), all three nodes start. The `arduino_bridge_node` logs a warning about the missing serial port but keeps running. The `fire_detector_node` and `brain_node` work fully -- you can test fire detection and watch the state machine respond.
